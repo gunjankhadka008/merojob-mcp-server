@@ -69,7 +69,7 @@ This project is designed to run locally using the loopback address (`127.0.0.1`)
 Clone the repository and navigate to the project directory:
 
 ```bash
-git clone https://github.com/gunjankhadka08/merojob-mcp-server.git
+git clone https://github.com/gunjankhadka008/merojob-mcp-server.git
 cd merojob-mcp-server
 ```
 
@@ -229,4 +229,4 @@ When proposing changes, please include a clear description of the issue, the exp
 
 **Gunjan Khadka**
 
-GitHub: [@gunjankhadka08](https://github.com/gunjankhadka08)
+GitHub: [@gunjankhadka008](https://github.com/gunjankhadka008)
