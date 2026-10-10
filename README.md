@@ -184,8 +184,12 @@ This project is for personal research and workflow automation. Respect MeroJob's
 
 ## Contributing
 
-Bug reports and improvements to the scraper or MCP integration are welcome. Please include what you expected, what happened, and steps to reproduce.
+Suggestions and fixes are welcome!
 
+- **Found a bug or have an idea?** Open an [Issue](https://github.com/gunjankhadka008/merojob-mcp-server/issues) and describe what you expected, what happened, and how to reproduce it.
+- **Want to change the code?** Fork this repo, make your change, and open a Pull Request with a short description of what it does.
+
+Please never include API keys, `.env` files, or your Claude Desktop config in an issue or pull request.
 ## Author
 
 **Gunjan Khadka**  ·  [@gunjankhadka008](https://github.com/gunjankhadka008)
