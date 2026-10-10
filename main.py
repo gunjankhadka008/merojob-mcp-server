@@ -68,57 +68,37 @@ async def search_jobs(q: str, api_key: str = Depends(verify_api_key)):
     soup = BeautifulSoup(html_content, 'html.parser')
     jobs = []
     
-    # Ultra-Generic Search: Look for ANY heading that contains a link
-    headings = soup.find_all(['h1', 'h2', 'h3'])
+    # Strip out headers, footers, and navs to avoid grabbing menu links
+    for element in soup(["nav", "header", "footer", "aside"]):
+        element.extract()
+        
+    # Grab ALL links on the page
+    links = soup.find_all('a', href=True)
     
-    for heading in headings:
-        link_elem = heading.find('a')
-        # If the heading itself isn't a link, check its parent
-        if not link_elem:
-            parent_link = heading.find_parent('a')
-            if parent_link:
-                link_elem = parent_link
-                
-        if not link_elem or 'href' not in link_elem.attrs:
-            continue
-            
-        href = link_elem['href']
-        # MeroJob job URLs usually contain '/job/' or are relative paths
-        if href == "#" or "javascript" in href:
-            continue
-            
-        title = heading.text.strip()
-        if not title:
+    for a in links:
+        href = a['href']
+        title = a.get_text(separator=' ', strip=True)
+        
+        # Ignore empty links, javascript, hash links, or basic site navigation
+        if not title or href in ["#", "/"] or "javascript" in href or "login" in href.lower() or "register" in href.lower():
             continue
             
         full_url = f"https://merojob.com{href}" if href.startswith('/') else href
-
-        # Attempt to find the company name nearby
-        parent_container = heading.find_parent(['div', 'li', 'article'])
-        company = "Unknown Company"
-        if parent_container:
-            for tag in parent_container.find_all(['h2', 'h3', 'h4', 'span']):
-                text = tag.text.strip()
-                if text and text != title and len(text) > 2:
-                    company = text
-                    break
-
+        
         # Prevent duplicates
         if not any(j['url'] == full_url for j in jobs):
             jobs.append({
                 "title": title,
-                "company": company,
+                "company": "See URL for details", # We rely on Claude to read the title/URL context
                 "url": full_url
             })
-        
-        if len(jobs) >= 15:
-            break
             
     return {
         "keyword": q, 
         "total_found": len(jobs), 
         "debug_page_title": page_title, 
-        "jobs": jobs
+        # Cap at 30 to avoid overwhelming Claude's context window
+        "jobs": jobs[:30] 
     }
 
 @app.get("/api/details")
