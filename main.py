@@ -123,35 +123,63 @@ async def search_jobs(q: str, api_key: str = Depends(verify_api_key)):
 
 @app.get("/api/details")
 async def job_details(url: str, api_key: str = Depends(verify_api_key)):
-    """Scrape the specific job description page using Playwright."""
+    """Scrape the specific job description page with full anti-bot stealth."""
     if "merojob.com" not in url:
         raise HTTPException(status_code=400, detail="Invalid MeroJob URL")
         
     html_content = ""
+    page_title = "Unknown"
     
     async with async_playwright() as p:
+        # 1. Apply the exact same stealth arguments used in the search endpoint
         browser = await p.chromium.launch(
             headless=True,
-            args=["--disable-blink-features=AutomationControlled"]
+            args=[
+                "--disable-blink-features=AutomationControlled", 
+                "--disable-infobars"
+            ]
         )
-        page = await browser.new_page(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1366, "height": 768},
+            java_script_enabled=True
+        )
+        
+        # Erase the webdriver flag
+        await context.add_init_script(
+            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+        )
+        
+        page = await context.new_page()
         
         try:
-            await page.goto(url, wait_until="networkidle", timeout=15000)
+            await page.goto(url, wait_until="networkidle", timeout=20000)
             html_content = await page.content()
+            page_title = await page.title()
         except Exception as e:
             await browser.close()
-            return {"error": str(e)}
+            return {"error": f"Browser failed: {str(e)}"}
             
         await browser.close()
+    await browser.close()
 
     soup = BeautifulSoup(html_content, 'html.parser')
     
-    desc_div = soup.find('div', itemprop='description')
-    if desc_div:
-        text = desc_div.get_text(separator='\n', strip=True)
+    # 1. Destroy all menus, scripts, icons, and styling tags to reduce noise
+    for element in soup(["script", "style", "nav", "header", "footer", "aside", "svg", "button", "iframe"]):
+        element.extract()
+
+    # 2. Grab absolutely all remaining visible text from the page
+    main_content = soup.find('main') or soup.find('body')
+    
+    if main_content:
+        # Join all text with newlines so Claude can read it clearly
+        text = main_content.get_text(separator='\n', strip=True)
     else:
-        card_body = soup.find('div', class_='card-body')
-        text = card_body.get_text(separator='\n', strip=True) if card_body else "Description not found."
+        text = f"FAILED. The browser saw this page title: '{page_title}'"
         
-    return {"url": url, "full_description": text}
+    return {
+        "url": url, 
+        "page_title": page_title,
+        "full_description": text
+    }
