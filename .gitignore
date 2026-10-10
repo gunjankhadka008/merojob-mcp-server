@@ -1,2 +1,15 @@
 venv/
 __pycache__/
+*.pyc
+
+# Local debug & scrap dumps
+debug_page.html
+*.html
+
+# Environment variables & secrets
+.env
+.env.*
+
+# OS & Claude config files
+.DS_Store
+claude_desktop_config.json
